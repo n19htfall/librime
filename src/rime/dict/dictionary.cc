@@ -223,6 +223,10 @@ bool DictEntryIterator::Next() {
 
 // Note: does not apply filters
 bool DictEntryIterator::Skip(size_t num_entries) {
+  if (num_entries == 0)
+    return true;
+  // the cached entry is invalidated by skipping entries
+  entry_.reset();
   while (num_entries > 0) {
     if (exhausted())
       return false;

@@ -139,6 +139,22 @@ TEST_F(RimeDictionaryTest, CopiedIteratorsAreIndependent) {
   EXPECT_EQ(from_original, from_assigned);
 }
 
+TEST_F(RimeDictionaryTest, SkipDropsCachedEntry) {
+  ASSERT_TRUE(dict_->loaded());
+  rime::DictEntryIterator peeked;
+  rime::DictEntryIterator fresh;
+  dict_->LookupWords(&peeked, "z", true);
+  dict_->LookupWords(&fresh, "z", true);
+  ASSERT_TRUE(bool(peeked.Peek()));
+  ASSERT_TRUE(peeked.Skip(3));
+  ASSERT_TRUE(fresh.Skip(3));
+  auto a = peeked.Peek();
+  auto b = fresh.Peek();
+  ASSERT_TRUE(a && b);
+  EXPECT_EQ(b->text, a->text);
+  EXPECT_EQ(b->code, a->code);
+}
+
 TEST_F(RimeDictionaryTest, TableLookupWithExclude) {
   ASSERT_TRUE(dict_->loaded());
   rime::string input("gei");
