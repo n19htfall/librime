@@ -12,6 +12,16 @@
 
 namespace rime {
 
+// Returns the input text in [start, end), or an empty string if the range is
+// out of bounds. Positions derived from candidates are not trusted: a
+// candidate (e.g. one created by a Lua script) may report a range that
+// extends past the input or overlaps the next segment.
+static string input_range(const string& input, size_t start, size_t end) {
+  if (start >= input.length() || end <= start)
+    return string();
+  return input.substr(start, end - start);
+}
+
 bool Composition::HasFinishedComposition() const {
   if (empty())
     return false;
@@ -41,7 +51,7 @@ Preedit Composition::GetPreedit(const string& full_input,
       } else {  // raw input
         end = at(i).end;
         if (!at(i).HasTag("phony")) {
-          preedit.text += input_.substr(start, end - start);
+          preedit.text += input_range(input_, start, end);
         }
       }
     } else {  // highlighted
@@ -64,7 +74,7 @@ Preedit Composition::GetPreedit(const string& full_input,
         }
       } else {
         end = at(i).end;
-        preedit.text += input_.substr(start, end - start);
+        preedit.text += input_range(input_, start, end);
       }
       if (preedit.sel_end == string::npos) {
         preedit.sel_end = preedit.text.length();
@@ -133,7 +143,7 @@ string Composition::GetScriptText(bool keep_selection) const {
     else if (cand && !cand->preedit().empty())
       result += boost::erase_first_copy(cand->preedit(), "\t");
     else if (!seg.HasTag("phony"))
-      result += input_.substr(start, end - start);
+      result += input_range(input_, start, end);
   }
   if (input_.length() > end) {
     result += input_.substr(end);
