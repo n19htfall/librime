@@ -127,6 +127,27 @@ CodeMatch match_extra_code(const table::Code* extra_code,
 DictEntryIterator::DictEntryIterator()
     : query_result_(New<dictionary::QueryResult>()) {}
 
+// Copies must not share the query result: iterating one copy advances chunk
+// cursors and reorders chunks, which would leave the other copy pointing past
+// the end of a chunk.
+DictEntryIterator::DictEntryIterator(const DictEntryIterator& other)
+    : DictEntryFilterBinder(other),
+      query_result_(other.query_result_
+                        ? New<dictionary::QueryResult>(*other.query_result_)
+                        : New<dictionary::QueryResult>()),
+      chunk_index_(other.chunk_index_),
+      entry_(other.entry_),
+      entry_count_(other.entry_count_) {}
+
+DictEntryIterator& DictEntryIterator::operator=(
+    const DictEntryIterator& other) {
+  if (this != &other) {
+    DictEntryIterator copy(other);
+    *this = std::move(copy);
+  }
+  return *this;
+}
+
 void DictEntryIterator::AddChunk(dictionary::Chunk&& chunk) {
   query_result_->chunks.push_back(std::move(chunk));
   entry_count_ += chunk.size;

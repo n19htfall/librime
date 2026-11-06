@@ -114,6 +114,31 @@ TEST_F(RimeDictionaryTest, ScriptLookupWithExclude) {
   EXPECT_TRUE(!c);
 }
 
+// Iterating a copy must not consume or reorder the original.
+TEST_F(RimeDictionaryTest, CopiedIteratorsAreIndependent) {
+  ASSERT_TRUE(dict_->loaded());
+  rime::DictEntryIterator it;
+  dict_->LookupWords(&it, "z", true);
+  ASSERT_FALSE(it.exhausted());
+  auto drain = [](rime::DictEntryIterator& iter) {
+    rime::vector<rime::string> texts;
+    while (!iter.exhausted()) {
+      texts.push_back(iter.Peek()->text);
+      iter.Next();
+    }
+    return texts;
+  };
+  rime::DictEntryIterator copy(it);
+  rime::DictEntryIterator assigned;
+  assigned = it;
+  auto from_copy = drain(copy);
+  auto from_assigned = drain(assigned);
+  auto from_original = drain(it);
+  EXPECT_EQ(it.entry_count(), from_original.size());
+  EXPECT_EQ(from_original, from_copy);
+  EXPECT_EQ(from_original, from_assigned);
+}
+
 TEST_F(RimeDictionaryTest, TableLookupWithExclude) {
   ASSERT_TRUE(dict_->loaded());
   rime::string input("gei");
