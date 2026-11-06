@@ -114,6 +114,47 @@ TEST_F(RimeDictionaryTest, ScriptLookupWithExclude) {
   EXPECT_TRUE(!c);
 }
 
+// Entries of a predictive lookup come out best first: shorter remaining code,
+// then higher weight. Every entry is visited exactly once.
+static void ExpectBestFirst(rime::Dictionary* dict,
+                            const rime::string& code,
+                            size_t min_entries) {
+  rime::DictEntryIterator it;
+  dict->LookupWords(&it, code, true);
+  const size_t total = it.entry_count();
+  ASSERT_GE(total, min_entries);
+  size_t n = 0;
+  rime::an<rime::DictEntry> prev;
+  rime::set<std::pair<rime::string, rime::string>> seen;
+  while (!it.exhausted()) {
+    auto e = it.Peek();
+    ASSERT_TRUE(bool(e));
+    rime::RawCode raw_code;
+    ASSERT_TRUE(dict->Decode(e->code, &raw_code));
+    EXPECT_TRUE(seen.emplace(e->text, raw_code.ToString()).second)
+        << "duplicate entry " << e->text;
+    // the first entry is taken from the first matching key, unsorted.
+    if (n > 1) {
+      if (prev->remaining_code_length == e->remaining_code_length) {
+        EXPECT_GE(prev->weight, e->weight) << prev->text << " " << e->text;
+      } else {
+        EXPECT_LT(prev->remaining_code_length, e->remaining_code_length);
+      }
+    }
+    prev = e;
+    ++n;
+    it.Next();
+  }
+  EXPECT_EQ(total, n);
+}
+
+TEST_F(RimeDictionaryTest, PredictiveLookupOrder) {
+  ASSERT_TRUE(dict_->loaded());
+  ExpectBestFirst(dict_.get(), "z", 50);
+  // an empty code matches every entry in the dictionary
+  ExpectBestFirst(dict_.get(), "", 1000);
+}
+
 // Iterating a copy must not consume or reorder the original.
 TEST_F(RimeDictionaryTest, CopiedIteratorsAreIndependent) {
   ASSERT_TRUE(dict_->loaded());
