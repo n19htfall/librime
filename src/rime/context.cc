@@ -152,8 +152,11 @@ bool Context::DeleteCandidate(size_t index) {
   if (composition_.empty())
     return false;
   Segment& seg(composition_.back());
+  auto cand = seg.GetCandidateAt(index);
+  if (!cand)
+    return false;
   seg.selected_index = index;
-  DLOG(INFO) << "Deleting candidate: " << seg.GetSelectedCandidate()->text();
+  DLOG(INFO) << "Deleting candidate: " << cand->text();
   delete_notifier_(this);
   return true;  // CAVEAT: this doesn't mean anything is deleted for sure
 }
