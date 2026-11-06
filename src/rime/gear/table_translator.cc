@@ -256,6 +256,11 @@ an<Translation> TableTranslator::Query(const string& input,
   const string& preedit(input);
   string code = input;
   boost::trim_right_if(code, boost::is_any_of(delimiters_));
+  if (code.empty()) {
+    // the segment consists of delimiters only. a predictive lookup of an
+    // empty code would enumerate every entry in the dictionary.
+    return nullptr;
+  }
 
   an<Translation> translation;
   if (enable_completion_) {
